@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex flex-col h-full">
+    <div id="app">
+        <nav class="bg-blue-800 text-white p-4 shadow-md">
+            <div class="mx-auto flex justify-between items-center">
+                <div class="text-xl font-bold">Dashboard</div>
+                <div class="relative">
+                    <button @click="toggleDropdown" class="text-white font-medium focus:outline-none hover:text-blue-200">
+                        {{ username }}
+                    </button>
+
+                    <div v-if="dropdownVisible" class="absolute right-0 mt-2 w-40 bg-blue-100 rounded-md shadow-lg py-2 border border-gray-200">
+                        <a href="profile.html" class="block px-4 py-2 text-sm text-black font-semibold hover:bg-gray-100">Profile</a>
+                        <a href="index.html" class="block px-4 py-2 text-sm text-black font-semibold hover:bg-gray-100" @click="logout">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto mt-10 px-4 sm:px-0">
+            <h1 class="text-2xl font-bold mb-4 text-center" >CRUD USER</h1>
+            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <input v-model="searchQuery" type="text" placeholder="Search..." class="border border-gray-300 px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-4 sm:mb-0 sm:mr-2 w-full sm:w-auto">
+                <button @click="addUser" class="bg-indigo-600 text-white px-4 py-2 rounded-md w-full sm:w-auto">Add User</button>
+            </div>
+
+            <div class="flex items-center mb-4">
+                <label for="itemsPerPage" class="mr-2">Show:</label>
+                <select id="itemsPerPage" v-model="itemsPerPage" @change="updateQueryString" class="font-serif mb-3 border border-black rounded-lg">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="ml-2">items per page</span>
+            </div> 
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300 text-center rounded-md shadow-md">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 border-b">ID</th>
+                            <th class="px-4 py-2 border-b">Name</th>
+                            <th class="px-4 py-2 border-b">Email</th>
+                            <th class="px-4 py-2 border-b">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="user in paginatedUsers" :key="user.id">
+                            <td class="px-4 py-2 border-b">{{ user.id }}</td>
+                            <td class="px-4 py-2 border-b">{{ user.name }}</td>
+                            <td class="px-4 py-2 border-b">{{ user.email }}</td>
+                            <td class="px-4 py-2 border-b">
+                                <button @click="editUser(user)" class="bg-yellow-500 text-white px-2 py-1 rounded-md">Edit</button>
+                                <button @click="deleteUser(user.id)" class="ml-2 bg-red-600 text-white px-2 py-1 rounded-md">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <button @click="prevPage" :disabled="currentPage === 1" class="px-4 py-2 mr-0 sm:mr-3 bg-gray-200 rounded-md w-full sm:w-auto mb-2 sm:mb-0">
+                    Previous
+                </button>
+                <div class="flex space-x-1">
+                    <span v-for="page in visiblePages" :key="page" @click="goToPage(page)" :class="{'bg-blue-600 text-white': page === currentPage, 'bg-gray-200': page !== currentPage}" class="px-4 py-2 rounded-md cursor-pointer flex justify-center">{{ page }}</span>
+                </div>
+                <button @click="nextPage" :disabled="currentPage === totalPages" class="px-4 py-2 ml-0 sm:ml-3 bg-gray-200 rounded-md w-full sm:w-auto">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <div v-if="showEditModal" class="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50 px-4">
+            <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-sm">
+                <h2 class="text-xl font-bold mb-4">Edit User</h2>
+                <form @submit.prevent="updateUser">
+                    <div class="mb-4">
+                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input v-model="currentUser.name" type="text" id="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="mb-4">
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input v-model="currentUser.email" type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" @click="closeEditModal" class="bg-gray-300 text-white px-4 py-2 rounded-md mr-2">Cancel</button>
+                        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-blue-800 text-white py-4 mt-auto">
+        <p class="text-center sm:text-left ml-5">Created by Dimas Putra | &copy; 2024</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    username: localStorage.getItem('username') || 'User',
+                    dropdownVisible: false,
+                    users: JSON.parse(localStorage.getItem('users')) || [],
+                    currentUser: { id: '', name: '', email: '' },
+                    searchQuery: new URLSearchParams(window.location.search).get('search') || '',
+                    currentPage: parseInt(new URLSearchParams(window.location.search).get('page')) || 1, 
+                    itemsPerPage: parseInt(new URLSearchParams(window.location.search).get('itemsPerPage')) || 5, 
+                    showEditModal: false
+                };
+            },
+            computed: {
+                visiblePages() {
+                    const range = 2;
+                    const startPage = Math.max(1, this.currentPage - range);
+                    const endPage = Math.min(this.totalPages, this.currentPage + range);
+                    const pages = [];
+
+                    for (let i = startPage; i <= endPage; i++) {
+                        pages.push(i);
+                    }
+                    return pages;
+                },
+                filteredUsers() {
+                    const query = this.searchQuery.toLowerCase();
+                    return this.users.filter(user => 
+                        user.name.toLowerCase().includes(query) || 
+                        user.email.toLowerCase().includes(query)
+                    );
+                },
+                paginatedUsers() {
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    return this.filteredUsers.slice(start, end);
+                },
+                totalPages() {
+                    return Math.ceil(this.filteredUsers.length / this.itemsPerPage);
+                }
+            },
+            methods: {
+                goToPage(page) {
+                    this.currentPage = page;
+                    this.updateQueryString();
+                },
+                prevPage() {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.updateQueryString();
+                    }
+                },
+                nextPage() {
+                    if (this.currentPage < this.totalPages) {
+                        this.currentPage++;
+                        this.updateQueryString();
+                    }
+                },
+                toggleDropdown() {
+                    this.dropdownVisible = !this.dropdownVisible;
+                },
+                logout() {
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('authenticated'); 
+                    window.location.href = 'index.html';
+                },
+                addUser() {
+                    this.currentUser = { id: Date.now(), name: '', email: '' };
+                    this.showEditModal = true;
+                },
+                editUser(user) {
+                    this.currentUser = { ...user };
+                    this.showEditModal = true;
+                },
+                updateUser() {
+                    const index = this.users.findIndex(u => u.id === this.currentUser.id);
+                    if (index === -1) {
+                        this.users.push(this.currentUser);
+                    } else {
+                        this.users.splice(index, 1, this.currentUser);
+                    }
+                    const authenticatedUserEmail = localStorage.getItem('username');
+                    if (authenticatedUserEmail === this.currentUser.email) {
+                        localStorage.setItem('username', this.currentUser.email);
+                    }
+
+                    this.saveUsers();
+                    this.closeEditModal();
+                },
+
+                deleteUser(id) {
+                    this.users = this.users.filter(user => user.id !== id);
+                    this.saveUsers();
+                },
+                closeEditModal() {
+                    this.showEditModal = false;
+                },
+                
+                updateQueryString() { 
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', this.currentPage);
+                    url.searchParams.set('search', this.searchQuery);
+                    url.searchParams.set('itemsPerPage', this.itemsPerPage); 
+                    window.history.pushState({}, '', url);
+                },
+                saveUsers() {
+                    localStorage.setItem('users', JSON.stringify(this.users));
+                }
+            },
+            watch: {
+                searchQuery(newValue) { 
+                    this.updateQueryString();
+                },
+                itemsPerPage(newValue) { 
+                    this.currentPage = 1; 
+                    this.updateQueryString(); 
+                }
+            },
+            mounted() {
+                if (!localStorage.getItem('authenticated')) {
+                    window.location.href = 'index.html'; 
+                }
+                this.username = localStorage.getItem('username') || 'User';
+
+            }
+        });
+    </script>
+</body>
+</html>

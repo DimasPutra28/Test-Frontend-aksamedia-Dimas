@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App | Test Aksamedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mode Dark */
+        .dark-mode {
+            background-color: #1f2937;
+            color: #f9fafb;
+        }
+
+        .dark-mode input,
+        .dark-mode select,
+        .dark-mode textarea {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+
+        .dark-mode a {
+            color: #a5b4fc;
+        }
+
+        .dark-mode button {
+            background-color: #4f46e5;
+            border-color: #4338ca;
+        }
+
+        .switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .switch input {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-400 flex items-center justify-center min-h-screen">
+    <div id="app" class="bg-gray-200 p-8 m-2 rounded-3xl shadow-2xl w-full max-w-sm border border-blue-950">
+        <h2 class="text-2xl font-bold font-serif text-center mb-8">Login Akun Anda</h2>
+        <form @submit.prevent="login" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-mono font-bold">Email</label>
+                <input type="email" id="email" v-model="email" placeholder="Masukkan Email Anda" required class="block w-full px-3 py-2 border border-gray-300 rounded-xl shadow-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:bg-slate-200 sm:text-sm">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-mono font-bold">Password</label>
+                <input type="password" id="password" v-model="password" placeholder="Masukkan Password Anda" class="block w-full px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:bg-slate-200 sm:text-sm" required>
+                <div class="flex text-sm justify-end mt-2">
+                    <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">Lupa Password?</a>
+                </div>
+            </div>
+            <div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 mb-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">LOGIN</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="switch">
+        <label for="dark-mode-switch" class="text-sm font-mono font-bold">Dark Mode</label>
+        <input type="checkbox" id="dark-mode-switch">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                email: '',
+                password: ''
+            },
+            methods: {
+                login() {
+                    const username = this.email.split('@')[0];
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('authenticated', true);
+                    window.location.href = 'user.html';
+                }
+            },
+            mounted() {
+                if (localStorage.getItem('authenticated')) {
+                    window.location.href = 'user.html';
+                }
+
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+                    document.getElementById('dark-mode-switch').checked = savedTheme === 'dark';
+                }
+
+                document.getElementById('dark-mode-switch').addEventListener('change', (event) => {
+                    const isDarkMode = event.target.checked;
+                    document.body.classList.toggle('dark-mode', isDarkMode);
+                    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
